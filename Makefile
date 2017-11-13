@@ -2,24 +2,35 @@ define TARGETS_BODY
 
 ===> Standalone targets <===
 
-getopt-test: test standalone getopt_long() from musl (x86-simd-test.c)
-eigen-test: eigenvalues for symmetric and non-symmetric matrices (eigen.c)
-inv-inthash: invertible integer hash functions (inv-inthash.c)
-mastermind: the MasterMind game; computer as code breaker (mastermind.c)
-x86-simd-test: test supported SIMD instruction sets (getopt.{c,h} getopt-test.c)
+Algorithms:
 
-checksum/sha1-gs: compute SHA1 checksum from GhostScript (sha1-gs.c)
-checksum/sha1-oauth: compute SHA1 checksum from OAuth (sha1-oauth.c)
+  all-mss: find all max-scoring segments (all-mss.c)
+  lis: longest increasing subsequences (lis.c)
+  inv-inthash: invertible integer hash functions (inv-inthash.c)
+  checksum/sha1-gs: compute SHA1 checksum from GhostScript (sha1-gs.c)
+  checksum/sha1-oauth: compute SHA1 checksum from OAuth (sha1-oauth.c)
+  bwt/bwt-std: standard algorithm to construct BWT (bwt-std.c)
+  bwt/bwt-bcr1: construct BWT for one string with BCR (bwt-bcr1.c)
+  bwt/bwt-bcr: construct BWT for multiple strings with BCR (bwt-bcr.c)
 
-bwt/bwt-std: standard algorithm to construct BWT (bwt-std.c)
-bwt/bwt-bcr1: construct BWT for one string with BCR (bwt-bcr1.c)
-bwt/bwt-bcr: construct BWT for multiple strings with BCR (bwt-bcr.c)
+Numerical:
+
+  eigen-test: eigenvalues for symmetric and non-symmetric matrices (eigen.c)
+
+System:
+
+  getopt-test: test standalone getopt_long() from musl (x86-simd-test.c)
+  x86-simd-test: test supported SIMD instruction sets (getopt.{c,h} getopt-test.c)
+
+For fun:
+
+  mastermind: the MasterMind game; computer as code breaker (mastermind.c)
 
 endef
 export TARGETS_BODY
 
 STANDALONE=\
-	getopt-test mastermind x86-simd-test inv-inthash eigen-test \
+	getopt-test mastermind x86-simd-test inv-inthash eigen-test all-mss lis \
 	checksum/sha1-gs checksum/sha1-oauth \
 	bwt/bwt-std bwt/bwt-bcr1 bwt/bwt-bcr
 
@@ -47,6 +58,12 @@ mastermind:mastermind.c
 	$(CC) -O2 -Wall -o $@ $<
 
 inv-inthash:inv-inthash.c
+	$(CC) -O2 -Wall -o $@ $<
+
+all-mss:all-mss.c
+	$(CC) -O2 -Wall -o $@ $<
+
+lis:lis.c
 	$(CC) -O2 -Wall -o $@ $<
 
 checksum/sha1-gs:checksum/sha1-gs.c
