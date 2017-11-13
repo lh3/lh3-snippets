@@ -1,11 +1,16 @@
 define TARGETS_BODY
 
-===> Standalone targets <===
+Standalone targets
+==================
 
 Algorithms:
 
   all-mss: find all max-scoring segments (all-mss.c)
   lis: longest increasing subsequences (lis.c)
+  arr-merge: merge two sorted arrays (arr-merge.c)
+  arr-shuf: shuffle an array (arr-shuf.c)
+  kmer-count: count k-mer in DNA sequences (kmer-cnt.c)
+  res-sample: reservior sampling (res-sample.c)
   inv-inthash: invertible integer hash functions (inv-inthash.c)
   checksum/sha1-gs: compute SHA1 checksum from GhostScript (sha1-gs.c)
   checksum/sha1-oauth: compute SHA1 checksum from OAuth (sha1-oauth.c)
@@ -26,11 +31,23 @@ For fun:
 
   mastermind: the MasterMind game; computer as code breaker (mastermind.c)
 
+
+Dependency required
+===================
+
+Algorithms:
+
+  checksum/crc32-zlib: compute CRC32 with zlib (crc32-zlib.c)
+  checksum/sha1-openssl: compute SHA1 with OpenSSL (sha1-openssl.c)
+
+
 endef
 export TARGETS_BODY
 
 STANDALONE=\
 	getopt-test mastermind x86-simd-test inv-inthash eigen-test all-mss lis \
+	arr-merge arr-shuf res-sample \
+	kmer-cnt \
 	checksum/sha1-gs checksum/sha1-oauth \
 	bwt/bwt-std bwt/bwt-bcr1 bwt/bwt-bcr
 
@@ -65,6 +82,18 @@ all-mss:all-mss.c
 
 lis:lis.c
 	$(CC) -O2 -Wall -o $@ $<
+
+arr-merge:arr-merge.c
+	$(CC) -O2 -Wall -o $@ $<
+
+arr-shuf:arr-shuf.c
+	$(CC) -O2 -Wall -o $@ $<
+
+res-sample:res-sample.c
+	$(CC) -O2 -Wall -o $@ $<
+
+kmer-cnt:kmer-cnt.c klib/khash.h
+	$(CC) -O2 -Wall -Iklib -o $@ $<
 
 checksum/sha1-gs:checksum/sha1-gs.c
 	$(CC) -O2 -Wall -o $@ $<
