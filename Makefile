@@ -20,11 +20,11 @@ Algorithms:
 
 Numerical:
 
-  eigen-test: eigenvalues for symmetric and non-symmetric matrices (eigen.c)
+  eigen-test: eigenvalues for symmetric and asymmetric matrices (eigen.c; not by me)
 
 System:
 
-  getopt-test: test standalone getopt_long() from musl (x86-simd-test.c)
+  getopt-test: test standalone getopt_long() from musl (x86-simd-test.c; not by me)
   x86-simd-test: test supported SIMD instruction sets (getopt.{c,h} getopt-test.c)
 
 For fun:
