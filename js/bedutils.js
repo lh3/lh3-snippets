@@ -230,6 +230,7 @@ function bed_gdist(args)
 			var xe = g[ie][3] + (ie == g.length - 1? 0 : (g[ie+1][3] - g[ie][3]) / (g[ie][1] - g[ie][0]) * (en - g[ie][0]));
 			v = 1e6 * (xe - xs) / (en - st);
 		}
+		v = v == 0? 0 : v.toFixed(15);
 		print(t[0], t[1], t[2], v);
 	}
 	file.close();
