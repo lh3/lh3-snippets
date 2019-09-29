@@ -48,6 +48,61 @@ var getopt = function(args, ostr) {
 	return optopt;
 }
 
+/***************
+ * BED overlap *
+ ***************/
+
+function it_index(a) {
+	if (a.length == 0) return -1;
+	a.sort(function(x, y) { return x[0] - y[0] });
+	var last, last_i;
+	for (var i = 0; i < a.length; i += 2) last = a[i][2] = a[i][1], last_i = i;
+	for (var k = 1; 1<<k <= a.length; ++k) {
+		var i0 = (1<<k) - 1, step = 1<<(k+1);
+		for (var i = i0; i < a.length; i += step) {
+			var x = 1<<(k-1);
+			a[i][2] = a[i][1];
+			if (a[i][2] < a[i-x][2]) a[i][2] = a[i-x][2];
+			var e = i + x < a.length? a[i+x][2] : last;
+			if (a[i][2] < e) a[i][2] = e;
+		}
+		last_i = last_i>>k&1? last_i - (1<<(k-1)) : last_i + (1<<(k-1));
+		if (last_i < a.length) last = last > a[last_i][2]? last : a[last_i][2];
+	}
+	return k - 1;
+}
+
+function it_overlap(a, st, en) {
+	var h, stack = [], b = [];
+	for (h = 0; 1<<h <= a.length; ++h);
+	--h;
+	stack.push([(1<<h) - 1, h, 0]);
+	while (stack.length) {
+		var t = stack.pop();
+		var x = t[0], h = t[1], w = t[2];
+		if (h <= 2) {
+			var i0 = x >> h << h, i1 = i0 + (1<<(h+1)) - 1;
+			if (i1 >= a.length) i1 = a.length;
+			for (var i = i0; i < i1; ++i)
+				if (a[i][0] < en && st < a[i][1])
+					b.push(i);
+		} else if (w == 0) { // if left child not processed
+			stack.push([x, h, 1]);
+			var y = x - (1<<(h-1));
+			if (y >= a.length || a[y][2] > st)
+				stack.push([y, h - 1, 0]);
+		} else if (x < a.length && a[x][0] < en) {
+			if (st < a[x][1]) b.push(x);
+			stack.push([x + (1<<(h-1)), h - 1, 0]);
+		}
+	}
+	return b;
+}
+
+/******************************
+ ***** Command-line tools *****
+ ******************************/
+
 function bed_sum(args)
 {
 	var buf = new Bytes();
@@ -128,6 +183,59 @@ function bed_sum1(args)
 	return 0;
 }
 
+function bed_gdist(args)
+{
+	if (args.length == 0) {
+		print("Usage: bedutils.js gdist <3-col-gmap.txt> <reg.bed>");
+		exit(1);
+	}
+	var file, buf = new Bytes();
+
+	var gmap = {};
+	file = new File(args[0]);
+	var last_pos = 0, last_ctg = null, last_v = 0.0;
+	while (file.readline(buf) >= 0) {
+		var t = buf.toString().split("\t");
+		var pos = parseInt(t[1]);
+		var v = parseFloat(t[2]);
+		if (last_ctg != t[0] && last_ctg != null) {
+			gmap[last_ctg].push([last_pos, 0x7fffffff, -1, last_v]);
+			last_pos = 0, last_v = 0.0;
+		}
+		if (gmap[t[0]] == null) gmap[t[0]] = [];
+		if (last_pos == pos) throw Error("Zero-length interval");
+		gmap[t[0]].push([last_pos, pos, -1, last_v]);
+		last_pos = pos, last_ctg = t[0], last_v = v;
+	}
+	if (last_ctg != null)
+		gmap[last_ctg].push([last_pos, 0x7fffffff, -1, last_v]);
+	file.close();
+
+	for (var ctg in gmap) it_index(gmap[ctg]);
+
+	file = args.length >= 2? new File(args[1]) : new File();
+	while (file.readline(buf) >= 0) {
+		var t = buf.toString().split("\t");
+		var st = parseInt(t[1]), en = parseInt(t[2]);
+		var v, g = gmap[t[0]];
+		if (g == null) v = -1;
+		else if (st == en) v = 0;
+		else {
+			var as = it_overlap(g, st, st + 1);
+			var ae = it_overlap(g, en - 1, en);
+			if (as.length != 1 || ae.length != 1)
+				throw Error("Bug!");
+			var is = as[0], ie = ae[0];
+			var xs = g[is][3] + (is == g.length - 1? 0 : (g[is+1][3] - g[is][3]) / (g[is][1] - g[is][0]) * (st - g[is][0]));
+			var xe = g[ie][3] + (ie == g.length - 1? 0 : (g[ie+1][3] - g[ie][3]) / (g[ie][1] - g[ie][0]) * (en - g[ie][0]));
+			v = 1e6 * (xe - xs) / (en - st);
+		}
+		print(t[0], t[1], t[2], v);
+	}
+	file.close();
+	buf.destroy();
+}
+
 function main(args)
 {
 	if (args.length == 0) {
@@ -137,6 +245,7 @@ function main(args)
 		print("  sum1       sum of BED regions for each contig");
 		print("  sum2nd     sum of the 2nd column");
 		print("  merge      merge overlapping regions in sorted BED");
+		print("  gdist      genetic distance from 3-col genetic map");
 		exit(1);
 	}
 
@@ -145,6 +254,7 @@ function main(args)
 	else if (cmd == 'sum2nd') bed_sum2nd(args);
 	else if (cmd == 'sum1') bed_sum1(args);
 	else if (cmd == 'merge') bed_merge(args);
+	else if (cmd == 'gdist') bed_gdist(args);
 	else throw Error("unrecognized command: " + cmd);
 }
 
