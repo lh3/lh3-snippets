@@ -1,7 +1,5 @@
 #!/usr/bin/env k8
 
-var paftools_version = '2.15-r905';
-
 /*****************************
  ***** Library functions *****
  *****************************/
@@ -237,6 +235,53 @@ function bed_gdist(args)
 	buf.destroy();
 }
 
+function bed_window(args)
+{
+	var c, win_size = 500000, skip = 250000, cnt_only = false;
+	while ((c = getopt(args, "w:s:c")) != null) {
+		if (c == 'w') win_size = parseInt(getopt.arg);
+		else if (c == 's') skip = parseInt(getopt.arg);
+		else if (c == 'c') cnt_only = true;
+	}
+
+	var buf = new Bytes();
+	var file = getopt.ind < args.length? new File(args[getopt.ind]) : new File();
+	var bed = {}, ctgs = [];
+	while (file.readline(buf) >= 0) {
+		var t = buf.toString().split("\t");
+		if (bed[t[0]] == null) { bed[t[0]] = []; ctgs.push(t[0]); }
+		bed[t[0]].push([parseInt(t[1]), parseInt(t[2]), -1]);
+	}
+	file.close();
+	buf.destroy();
+
+	for (var ct = 0; ct < ctgs.length; ++ct) {
+		var ctg = ctgs[ct];
+		it_index(bed[ctg]);
+		var a = bed[ctg];
+		var max = 0;
+		for (var i = 0; i < a.length; ++i)
+			max = max > a[i][1]? max : a[i][1];
+		for (var x = 0; x < max; x += skip) {
+			var st = x, en = x + win_size;
+			if (en > max) en = max;
+			var b = it_overlap(a, st, en);
+			var sum = 0;
+			for (var i = 0; i < b.length; ++i) {
+				if (cnt_only) {
+					++sum;
+				} else {
+					var c = a[b[i]];
+					var s = st > c[0]? st : c[0];
+					var e = en < c[1]? en : c[1];
+					sum += e - s;
+				}
+			}
+			print(ctg, st, en, sum);
+		}
+	}
+}
+
 function main(args)
 {
 	if (args.length == 0) {
@@ -247,6 +292,7 @@ function main(args)
 		print("  sum2nd     sum of the 2nd column");
 		print("  merge      merge overlapping regions in sorted BED");
 		print("  gdist      genetic distance from 3-col genetic map");
+		print("  window     window-based counting");
 		exit(1);
 	}
 
@@ -256,6 +302,7 @@ function main(args)
 	else if (cmd == 'sum1') bed_sum1(args);
 	else if (cmd == 'merge') bed_merge(args);
 	else if (cmd == 'gdist') bed_gdist(args);
+	else if (cmd == 'window') bed_window(args);
 	else throw Error("unrecognized command: " + cmd);
 }
 
