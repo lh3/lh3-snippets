@@ -282,6 +282,51 @@ function bed_window(args)
 	}
 }
 
+function bed_cov(args)
+{
+	if (args.length < 2) {
+		warn("Usage: bedutils.js cov <loaded.bed> <streamed.bed>");
+		exit(1);
+	}
+	var file, buf = new Bytes();
+
+	file = new File(args[0]);
+	var bed = {};
+	while (file.readline(buf) >= 0) {
+		var t = buf.toString().split("\t", 3);
+		if (bed[t[0]] == null) bed[t[0]] = [];
+		bed[t[0]].push([parseInt(t[1]), parseInt(t[2])]);
+	}
+	for (var ctg in bed) it_index(bed[ctg]);
+	file.close();
+
+	file = new File(args[1]);
+	while (file.readline(buf) >= 0) {
+		var t = buf.toString().split("\t", 3);
+		if (bed[t[0]] == null) {
+			print(t[0], t[1], t[2], 0, 0);
+		} else {
+			var st0 = parseInt(t[1]), en0 = parseInt(t[2]);
+			var b = bed[t[0]];
+			var a = it_overlap(b, st0, en0);
+			var cov_st = 0, cov_en = 0, cov = 0;
+			for (var i = 0; i < a.length; ++i) {
+				var st1 = b[a[i]][0] > st0? b[a[i]][0] : st0;
+				var en1 = b[a[i]][1] < en0? b[a[i]][1] : en0;
+				if (st1 > cov_en) {
+					cov += cov_en - cov_st;
+					cov_st = st1, cov_en = en1;
+				} else cov_en = cov_en > en1? cov_en : en1;
+			}
+			cov += cov_en - cov_st;
+			print(t[0], t[1], t[2], a.length, cov);
+		}
+	}
+	file.close();
+
+	buf.destroy();
+}
+
 function main(args)
 {
 	if (args.length == 0) {
@@ -290,7 +335,8 @@ function main(args)
 		print("  sum        sum of BED regions");
 		print("  sum1       sum of BED regions for each contig");
 		print("  sum2nd     sum of the 2nd column");
-		print("  merge      merge overlapping regions in sorted BED");
+		print("  merge      merge overlapping regions in *sorted* BED");
+		print("  cov        breadth of coverage");
 		print("  gdist      genetic distance from 3-col genetic map");
 		print("  window     window-based counting");
 		exit(1);
@@ -301,6 +347,7 @@ function main(args)
 	else if (cmd == 'sum2nd') bed_sum2nd(args);
 	else if (cmd == 'sum1') bed_sum1(args);
 	else if (cmd == 'merge') bed_merge(args);
+	else if (cmd == 'cov') bed_cov(args);
 	else if (cmd == 'gdist') bed_gdist(args);
 	else if (cmd == 'window') bed_window(args);
 	else throw Error("unrecognized command: " + cmd);
