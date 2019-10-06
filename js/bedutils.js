@@ -332,11 +332,11 @@ function main(args)
 	if (args.length == 0) {
 		print("Usage: bedutils.js <command> [arguments]");
 		print("Commands:");
-		print("  sum        sum of BED regions");
+		print("  sum        sum of BED regions (deprecated by bedtk)");
 		print("  sum1       sum of BED regions for each contig");
 		print("  sum2nd     sum of the 2nd column");
-		print("  merge      merge overlapping regions in *sorted* BED");
-		print("  cov        breadth of coverage");
+		print("  merge      merge overlapping regions in *sorted* BED (deprecated)");
+		print("  cov        breadth of coverage (deprecated by bedtk)");
 		print("  gdist      genetic distance from 3-col genetic map");
 		print("  window     window-based counting");
 		exit(1);
