@@ -237,7 +237,7 @@ function bed_gdist(args)
 
 function bed_window(args)
 {
-	var c, win_size = 500000, skip = 250000, cnt_only = false;
+	var c, win_size = 1000000, skip = 500000, cnt_only = false;
 	while ((c = getopt(args, "w:s:c")) != null) {
 		if (c == 'w') win_size = parseInt(getopt.arg);
 		else if (c == 's') skip = parseInt(getopt.arg);
@@ -263,21 +263,21 @@ function bed_window(args)
 		for (var i = 0; i < a.length; ++i)
 			max = max > a[i][1]? max : a[i][1];
 		for (var x = 0; x < max; x += skip) {
-			var st = x, en = x + win_size;
+			var st = x - (win_size>>1), en = x + (win_size>>1);
+			if (st < 0) st = 0;
 			if (en > max) en = max;
-			var b = it_overlap(a, st, en);
-			var sum = 0;
-			for (var i = 0; i < b.length; ++i) {
-				if (cnt_only) {
-					++sum;
-				} else {
+			var sum = 0, b = it_overlap(a, st, en);
+			if (cnt_only) {
+				sum = b.length;
+			} else {
+				for (var i = 0; i < b.length; ++i) {
 					var c = a[b[i]];
 					var s = st > c[0]? st : c[0];
 					var e = en < c[1]? en : c[1];
 					sum += e - s;
 				}
 			}
-			print(ctg, st, en, sum);
+			print(ctg, x, sum/(en-st)*1e6);
 		}
 	}
 }

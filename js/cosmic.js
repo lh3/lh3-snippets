@@ -69,8 +69,7 @@ function cos_cna2bed(args)
 
 function cos_cnasel(args)
 {
-	var max_dist = 100000, mode = 1, breakpoint = false;
-	var c, file, buf = new Bytes();
+	var c, max_dist = 100000, mode = 1, breakpoint = false;
 	while ((c = getopt(args, "d:m:b")) != null) {
 		if (c == 'd') max_dist = parseInt(getopt.arg);
 		else if (c == 'b') breakpoint = true;
@@ -90,6 +89,7 @@ function cos_cnasel(args)
 		exit(1);
 	}
 
+	var file, buf = new Bytes();
 	var len = {};
 	file = new File(args[getopt.ind]);
 	while (file.readline(buf) >= 0) {
@@ -117,8 +117,8 @@ function cos_cnasel(args)
 				dir = "long";
 			}
 			if (breakpoint) {
-				if (dir == "short") t[1] = t[2] - 1;
-				else t[2] = t[1] + 1;
+				if (dir == "short") t[1] = en - 1;
+				else t[2] = st + 1;
 				print(t.join("\t"), dir);
 			} else print(buf, dir);
 		} else if (mode == 2) {
@@ -127,7 +127,6 @@ function cos_cnasel(args)
 			else if (en < cs) dir = "short";
 			if (dir) {
 				if (breakpoint) {
-					var st = t[1], en = t[2];
 					t[1] = st, t[2] = st + 1;
 					print(t.join("\t"), dir);
 					t[1] = en - 1, t[2] = en;
@@ -138,6 +137,45 @@ function cos_cnasel(args)
 	}
 	file.close();
 
+	buf.destroy();
+}
+
+function cos_bedext(args)
+{
+	var c, ext = 1000;
+	while ((c = getopt(args, "l:")) != null)
+		if (c == 'l') ext = parseInt(getopt.arg);
+	if (args.length - getopt.ind == 0) {
+		print("Usage: cosmic.js bedext [options] <hs38.cen> <cna2bed.bed>");
+		print("Options:");
+		print("  -l INT     length ["+len+"]");
+		exit(1);
+	}
+
+	var file, buf = new Bytes();
+	var len = {};
+	file = new File(args[getopt.ind]);
+	while (file.readline(buf) >= 0) {
+		var t = buf.toString().split("\t");
+		if (t.length < 2) continue;
+		len[t[0]] = [parseInt(t[3]), parseInt(t[1]), parseInt(t[2])];
+	}
+	file.close();
+
+	file = args.length - getopt.ind < 2? new File() : new File(args[getopt.ind+1]);
+	while (file.readline(buf) >= 0) {
+		var t = buf.toString().split("\t");
+		var st = parseInt(t[1]), en = parseInt(t[2]);
+		if (len[t[0]] == null) continue;
+		var l = len[t[0]][0], cs = len[t[0]][1], ce = len[t[0]][2], cont = true;
+		if (st > ce) { // long arm
+			t[1] = st > ext? st - ext : 0;
+		} else if (en < cs) { // short arm
+			t[2] = en + ext < l? en + ext : l;
+		} else cont = false;
+		if (cont) print(t.join("\t"));
+	}
+	file.close();
 	buf.destroy();
 }
 
@@ -158,6 +196,7 @@ function main(args)
 	var cmd = args.shift();
 	if (cmd == 'cna2bed') cos_cna2bed(args);
 	else if (cmd == 'cnasel') cos_cnasel(args);
+	else if (cmd == 'bedext') cos_bedext(args);
 	else throw Error("unrecognized command: " + cmd);
 }
 
