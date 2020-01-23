@@ -38,15 +38,26 @@ var getopt = function(args, ostr) {
 	return optopt;
 }
 
-var c, height = 1.5, y_max0 = null, y_min0 = null;
-while ((c = getopt(arguments, "h:x:i:")) != null) {
+var c, width = 2, height = 1.5, y_max0 = null, y_min0 = null, fn_out = "chr-plot.eps", n = 1, fsize = 14;
+while ((c = getopt(arguments, "w:h:x:i:o:n:f:")) != null) {
 	if (c == 'h') height = parseFloat(getopt.arg);
+	else if (c == 'n') n = parseInt(getopt.arg);
+	else if (c == 'w') width = parseFloat(getopt.arg);
 	else if (c == 'x') y_max0 = parseFloat(getopt.arg);
 	else if (c == 'i') y_min0 = parseFloat(getopt.arg);
+	else if (c == 'o') fn_out = getopt.arg;
+	else if (c == 'f') fsize = parseInt(getopt.arg);
 }
 
 if (arguments.length - getopt.ind < 2) {
 	print("Usage: chr-plot.js [options] <chr.size> <dat.txt>");
+	print("Options:");
+	print("  -n INT      number of data points [" + n + "]");
+	print("  -w FLOAT    width of the plot [" + width + "]");
+	print("  -h FLOAT    height of the plot [" + height + "]");
+	print("  -x FLOAT    max y value [auto]");
+	print("  -i FLOAT    min y value [auto]");
+	print("  -o FILE     output file name [chr-plot.eps]");
 	exit(1);
 }
 
@@ -79,14 +90,16 @@ if (y_min0 != null) y_min = y_min0;
 
 buf.destroy();
 
-print('set t po eps co so enh "Helvetica,14"');
-print('set out "chr-plot.eps"');
-print('set size 1,' + (height + 0.02));
+print('set t po eps co so enh "Helvetica,' + fsize + '"');
+print('set out "' + fn_out + '"');
+print('set size ' + width + ',' + (height + 0.02));
 print('set multiplot layout ' + chr_list.length + ',1');
-print('set lmargin screen 0.07');
-print('set border 0; unset xtics; unset ytics; set bmargin 0; set tmargin 0.02; set rmargin 0');
-print('set style line 1 lc rgb "#e41a1c" lw 1');
-print('set style fill transparent solid 0.5 noborder');
+print('set lmargin screen ' + (fsize/2 * 0.01 + 0.005).toFixed(3));
+print('set border 0; unset xtics; unset ytics; set bmargin 0; set tmargin 0.02; set rmargin 0.02');
+print('set style line 1 lc rgb "#377eb8" lw 1');
+print('set style line 2 lc rgb "#e41a1c" lw 1');
+print('set style line 3 lc rgb "#4daf4a" lw 1');
+//print('set style fill transparent solid 0.5 noborder');
 print('set yran [' + y_min + ':' + y_max + ']');
 print('');
 var h = height / chr_list.length;
@@ -94,10 +107,24 @@ for (var i = 0; i < chr_list.length; ++i) {
 	var len = chr[chr_list[i]];
 	print('set origin 0,' + (height - (i + 1) * h + 0.01));
 	print('set xran [0:' + len * 1e-6 + ']');
-	print('set size ' + (len/max_len) + ',' + h);
+	print('set size ' + (width*len/max_len) + ',' + h);
 	print('set style rect fc lt -1 fs solid 0.15 noborder');
 	print('unset obj; unset label');
 	print('set obj rect from ' + cen[i][0]*1e-6 + ', graph 0 to ' + cen[i][1]*1e-6 + ', graph 1');
 	print('set label "' + chr_list[i] + '" at screen 0.01, graph 0.5');
-	print('plot "<awk \'$1==\\"' + chr_list[i] + '\\"\' ' + arguments[getopt.ind+1] + '" u ($2*1e-6):(0):($3) not w filledcu ls 1');
+	print('plot \\');
+	for (var j = 0; j < n; ++j) {
+		var st, en, endl = j == n - 1? '' : ', \\';
+		if (j > 0) {
+			st = en = '';
+			for (var k = 0; k < j; ++k) {
+				st += '+$' + (k + 3);
+				en += '+$' + (k + 3);
+			}
+			en += '+$' + (j + 3);
+			st = st.replace(/^\+/, "(") + ")";
+			en = en.replace(/^\+/, "(") + ")";
+		} else st = '(0)', en = '($3)';
+		print('     "<awk \'$1==\\"' + chr_list[i] + '\\"\' ' + arguments[getopt.ind+1] + '" u ($2*1e-6):' + st + ':' + en + ' not w filledcu ls ' + (j+1) + endl);
+	}
 }

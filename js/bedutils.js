@@ -237,15 +237,25 @@ function bed_gdist(args)
 
 function bed_window(args)
 {
-	var c, win_size = 1000000, skip = 500000, cnt_only = false;
-	while ((c = getopt(args, "w:s:c")) != null) {
+	var c, win_size = 1000000, skip = 500000, cnt_only = false, fn_len = null;
+	while ((c = getopt(args, "w:s:cl:")) != null) {
 		if (c == 'w') win_size = parseInt(getopt.arg);
 		else if (c == 's') skip = parseInt(getopt.arg);
 		else if (c == 'c') cnt_only = true;
+		else if (c == 'l') fn_len = getopt.arg;
 	}
 
-	var buf = new Bytes();
-	var file = getopt.ind < args.length? new File(args[getopt.ind]) : new File();
+	var lens = {}, file, buf = new Bytes();
+	if (fn_len) {
+		file = new File(fn_len);
+		while (file.readline(buf) >= 0) {
+			var t = buf.toString().split("\t");
+			if (t.length < 2) continue;
+			lens[t[0]] = parseInt(t[1]);
+		}
+		file.close();
+	}
+	file = getopt.ind < args.length? new File(args[getopt.ind]) : new File();
 	var bed = {}, ctgs = [];
 	while (file.readline(buf) >= 0) {
 		var t = buf.toString().split("\t");
@@ -262,6 +272,7 @@ function bed_window(args)
 		var max = 0;
 		for (var i = 0; i < a.length; ++i)
 			max = max > a[i][1]? max : a[i][1];
+		if (lens[ctg] > 0 && max < lens[ctg]) max = lens[ctg];
 		for (var x = 0; x < max; x += skip) {
 			var st = x - (win_size>>1), en = x + (win_size>>1);
 			if (st < 0) st = 0;
